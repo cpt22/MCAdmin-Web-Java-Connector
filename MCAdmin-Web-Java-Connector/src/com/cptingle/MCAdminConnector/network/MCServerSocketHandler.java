@@ -1,6 +1,5 @@
-package com.cptingle.MCAdminConnector;
+package com.cptingle.MCAdminConnector.network;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -10,6 +9,11 @@ import java.net.Socket;
 import java.util.LinkedList;
 import java.util.Queue;
 
+import com.cptingle.MCAdminConnector.Host;
+import com.cptingle.MCAdminConnector.MCServer;
+import com.cptingle.MCAdminConnector.ServerManager;
+import com.cptingle.MCAdminItems.BanRequest;
+import com.cptingle.MCAdminItems.KickRequest;
 import com.cptingle.MCAdminItems.PlayerUpdate;
 import com.cptingle.MCAdminItems.SimpleRequest;
 import com.cptingle.MCAdminItems.Token;
@@ -54,26 +58,31 @@ public class MCServerSocketHandler extends Thread {
 		while (true) {
 			try {
 				incomingObject = inS.readObject();
-
 				processIncoming(incomingObject);
-			} catch (EOFException e) {
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
 				close();
-				break;
-			} catch (Exception ex) {
-				// System.out.println("Player Disconnected From: " + player.getIpAddress() + "
-				// and was in game " + player.getGameID());
-				ex.printStackTrace();
 				break;
 			}
 		}
 	}
 
+	/**
+	 * Called after server is validated. This processes any objects that were sent
+	 * before server is validated.
+	 */
 	public void processAllPreValidation() {
 		while (incomingInvalidQueue.peek() != null) {
 			processIncoming(incomingInvalidQueue.remove());
 		}
 	}
 
+	/**
+	 * Processing objects incoming from ObjectInputStream
+	 * 
+	 * @param incoming
+	 */
 	public void processIncoming(Object incoming) {
 		if (incoming instanceof Token) {
 			server.processToken((Token) incoming);
@@ -95,6 +104,10 @@ public class MCServerSocketHandler extends Thread {
 			}
 		} else if (incoming instanceof PlayerUpdate) {
 			server.processPlayerUpdate((PlayerUpdate) incoming);
+		} else if (incoming instanceof KickRequest) {
+			server.processPlayerKick((KickRequest) incoming);
+		} else if (incoming instanceof BanRequest) {
+			server.processPlayerBan((BanRequest) incoming);
 		}
 	}
 
@@ -105,6 +118,10 @@ public class MCServerSocketHandler extends Thread {
 		} catch (IOException e) {
 
 		}
+		
+		server.close();
+		
+		sm.removeServer(server);
 	}
 
 }

@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
+import com.cptingle.MCAdminConnector.Host;
+
 public class DBConsumer implements Runnable {
 	private final BlockingQueue<Query> queue;
 	private Connection conn;
@@ -30,7 +32,18 @@ public class DBConsumer implements Runnable {
 	}
 
 	void consume(Query q) {
-
+		
+		if (!Host.getManager().isValidServer(q.getCaller())) {
+			try {
+				PreparedStatement preparedStmt = conn.prepareStatement("INSERT INTO server_DB_queue (server_ID, stored_object) VALUES (?,?)");
+				preparedStmt.setString(1, q.getCaller().getID());
+				preparedStmt.setObject(2, q);
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			return;
+		}
+		
 		try {
 			PreparedStatement preparedStmt = conn.prepareStatement(q.getQuery());
 			for (int i = 1; i <= q.getParameters().size(); i++) {
@@ -51,7 +64,6 @@ public class DBConsumer implements Runnable {
 				}
 			}
 
-			// execute the preparedstatement
 
 			if (!q.getQuery().toLowerCase().contains("select")) {
 				preparedStmt.executeUpdate();

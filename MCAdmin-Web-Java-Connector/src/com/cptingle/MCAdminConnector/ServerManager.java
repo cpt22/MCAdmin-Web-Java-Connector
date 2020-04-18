@@ -32,6 +32,10 @@ public class ServerManager {
 	public boolean removeServer(MCServer server) {
 		return serverMap.remove(server.getToken()) != null;
 	}
+	
+	public boolean isValidServer(MCServer server) {
+		return serverMap.containsValue(server);
+	}
 
 	public boolean isValidServer(String token) {
 		if (serverMap.containsKey(token))

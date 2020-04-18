@@ -1,6 +1,5 @@
 package com.cptingle.MCAdminConnector.database;
 
-import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Map;
 
