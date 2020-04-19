@@ -6,12 +6,7 @@ import java.util.List;
 
 import com.cptingle.MCAdminConnector.MCServer;
 
-public class Query implements Serializable {
-
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 11234565476L;
+public class Query {
 	
 	protected String query;
 	protected List<Object> parameters;

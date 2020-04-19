@@ -1,10 +1,5 @@
 package com.cptingle.MCAdminConnector;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Map;
@@ -29,29 +24,20 @@ public class MCServer {
 	private String ID;
 	private boolean validated;
 
-	// Network Stuff
-	private Socket socket;
-	private InputStream is;
-	private OutputStream os;
-	private ObjectOutputStream outS;
-	private ObjectInputStream inS;
-
 	private final BlockingQueue<QueryResult> resultQueue;
 	private ResultProcessor rp;
 	private MCServerSocketHandler socketHandler;
 
 	public MCServer(Socket s) {
-		this.socket = s;
-		resultQueue = new LinkedBlockingQueue<QueryResult>();
+		this.resultQueue = new LinkedBlockingQueue<QueryResult>();
 
 		this.validated = false;
 
-		rp = new ResultProcessor(this, resultQueue);
-		new Thread(rp).start();
+		this.rp = new ResultProcessor(this, resultQueue);
+		Thread rpThread = new Thread(rp);
+		rpThread.start();
 
-		loadStreams();
-
-		socketHandler = new MCServerSocketHandler(this);
+		socketHandler = new MCServerSocketHandler(this, s);
 	}
 
 	public String getToken() {
@@ -81,50 +67,10 @@ public class MCServer {
 	public void setValidated(boolean val) {
 		validated = val;
 		if (validated) {
+			socketHandler.setName("Socket Handler " + name + " thread");
+			socketHandler.processAllPreValidation();
 			Host.getManager().transferServer(this);
 		}
-		System.out.println("isValidated:" + validated);
-	}
-
-	/**
-	 * Methods
-	 */
-	private void loadStreams() {
-		try {
-			os = socket.getOutputStream();
-			outS = new ObjectOutputStream(os);
-			is = socket.getInputStream();
-			inS = new ObjectInputStream(is);
-
-			send(SimpleRequest.SEND_TOKEN);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			System.out.println("error");
-		}
-	}
-
-	/**
-	 * NEtwork Stuff
-	 */
-	public Socket getSocket() {
-		return socket;
-	}
-
-	public InputStream getInputStream() {
-		return is;
-	}
-
-	public OutputStream getOutputStream() {
-		return os;
-	}
-
-	public ObjectOutputStream getObjectOutputStream() {
-		return outS;
-	}
-
-	public ObjectInputStream getObjectInputStream() {
-		return inS;
 	}
 
 	/**
@@ -152,12 +98,12 @@ public class MCServer {
 	 * @return
 	 */
 	public boolean processPlayerUpdate(PlayerUpdate p) {
-		String sql = "INSERT INTO player_status (uuid, username, status, server_ID) VALUES (?,?,?," + ID
-				+ ") ON DUPLICATE KEY UPDATE status=?";
+		String sql = "INSERT INTO player_status (uuid, username, status, server_ID) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE status=?";
 		ArrayList<Object> params = new ArrayList<Object>();
 		params.add(p.uuid);
 		params.add(p.username);
 		params.add(p.status);
+		params.add(ID);
 		params.add(p.status);
 
 		return Host.getDBQueue().offer(new Query(this, sql, params, QueryType.PLAYER_STATUS_UPDATE));
@@ -172,18 +118,19 @@ public class MCServer {
 		String sql;
 		ArrayList<Object> params = new ArrayList<Object>();
 		if (p.state) {
-			sql = "INSERT INTO player_banlist (uuid, username, executor, reason, server_ID) VALUES (?,?,?,?" + ID
-					+ ") ON DUPLICATE KEY UPDATE username=?";
+			sql = "INSERT INTO player_banlist (uuid, username, executor, reason, server_ID) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE username=?";
 			params.add(p.uuid);
 			params.add(p.username);
 			params.add(p.executor);
 			params.add(p.reason);
+			params.add(ID);
 			params.add(p.username);
 		} else {
-			sql = "DELETE FROM player_banlist WHERE uuid=? AND server_ID=" + ID;
+			sql = "DELETE FROM player_banlist WHERE uuid=? AND server_ID=?";
 			params.add(p.uuid);
+			params.add(ID);
 		}
-		
+
 		Host.getDBQueue().offer(new LogQuery(this, p.executor, "ban", "{'username':'" + p.username + "' 'uuid':'"
 				+ p.uuid + "' 'reason':'" + p.reason + "' 'state':'" + p.state + "'}"));
 		return Host.getDBQueue().offer(new Query(this, sql, params, QueryType.BAN));
@@ -195,30 +142,10 @@ public class MCServer {
 	 * @return
 	 */
 	public boolean clearOnlinePlayers() {
-		String sql = "UPDATE player_status SET status=0 WHERE serverID=" + ID;
-		return Host.getDBQueue().offer(new Query(this, sql, null, QueryType.PLAYER_STATUS_UPDATE));
-	}
-
-	/**
-	 * Sends provided object through the ObjectOutputStream to the client server
-	 * 
-	 * @param o
-	 * @return
-	 */
-	public boolean send(Object o) {
-		try {
-			writeObj(o);
-			return true;
-		} catch (IOException e) {
-			e.printStackTrace();
-			return false;
-		}
-	}
-
-	private void writeObj(Object obj) throws IOException {
-		outS.reset();
-		outS.writeObject(obj);
-		outS.flush();
+		String sql = "UPDATE player_status SET status=0 WHERE server_ID=?";
+		ArrayList<Object> params = new ArrayList<Object>();
+		params.add(ID);
+		return Host.getDBQueue().offer(new Query(this, sql, params, QueryType.PLAYER_STATUS_UPDATE));
 	}
 
 	/**
@@ -235,7 +162,7 @@ public class MCServer {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public void close() {
 		rp.notifyClose();
 	}
@@ -271,7 +198,9 @@ public class MCServer {
 			if (rs.size() == 0) {
 				switch (qr.type) {
 				case VERIFY_TOKEN:
-					server.send(SimpleRequest.INVALID_TOKEN);
+					socketHandler.send(SimpleRequest.INVALID_TOKEN);
+					break;
+				default:
 					break;
 
 				}
@@ -283,15 +212,20 @@ public class MCServer {
 
 					ID = (String) row.get("ID");
 					name = (String) row.get("name");
-					if (ID.equals("")) {
+					if (!ID.equals("")) {
+						Thread.currentThread().setName("Server " + name + " thread");
 						server.setValidated(true);
+						socketHandler.send(SimpleRequest.SERVER_VALIDATED);
+						Host.getServer().getLogger().info("Server " + name + " validated");
 					}
+					break;
+				default:
 					break;
 
 				}
 			}
 		}
-		
+
 		public void notifyClose() {
 			shouldRun = false;
 		}

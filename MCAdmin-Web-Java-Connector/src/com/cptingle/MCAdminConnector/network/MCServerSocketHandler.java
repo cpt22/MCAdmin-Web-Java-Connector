@@ -1,10 +1,8 @@
 package com.cptingle.MCAdminConnector.network;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.net.Socket;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -27,8 +25,6 @@ public class MCServerSocketHandler extends Thread {
 	private MCServer server;
 
 	private Socket socket;
-	private InputStream is;
-	private OutputStream os;
 	private ObjectOutputStream outS;
 	private ObjectInputStream inS;
 
@@ -36,20 +32,15 @@ public class MCServerSocketHandler extends Thread {
 
 	private volatile Object incomingObject;
 
-	public MCServerSocketHandler(MCServer s) {
-		sm = Host.getManager();
+	public MCServerSocketHandler(MCServer s, Socket socket) {
+		this.sm = Host.getManager();
 
-		server = s;
+		this.server = s;
+		this.socket = socket;
 
-		incomingInvalidQueue = new LinkedList<Object>();
-
-		while (socket == null || is == null || os == null || outS == null || inS == null) {
-			socket = s.getSocket();
-			is = s.getInputStream();
-			os = s.getOutputStream();
-			outS = s.getObjectOutputStream();
-			inS = s.getObjectInputStream();
-		}
+		this.incomingInvalidQueue = new LinkedList<Object>();
+		
+		loadStreams();
 
 		this.start();
 	}
@@ -67,6 +58,41 @@ public class MCServerSocketHandler extends Thread {
 			}
 		}
 	}
+	
+	/**
+	 * Loads all streams from socket
+	 */
+	private void loadStreams() {
+		try {
+			outS = new ObjectOutputStream(socket.getOutputStream());
+			inS = new ObjectInputStream(socket.getInputStream());
+
+			send(SimpleRequest.SEND_TOKEN);
+		} catch (IOException e) {
+			Host.getServer().getLogger().severe("Error loading streams");
+		}
+	}
+	
+	/**
+	 * Sends provided object through the ObjectOutputStream to the client server
+	 * 
+	 * @param o
+	 * @return
+	 */
+	public boolean send(Object o) {
+		try {
+			writeObj(o);
+			return true;
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	private void writeObj(Object obj) throws IOException {
+		outS.writeObject(obj);
+		outS.flush();
+	}
 
 	/**
 	 * Called after server is validated. This processes any objects that were sent
@@ -74,7 +100,7 @@ public class MCServerSocketHandler extends Thread {
 	 */
 	public void processAllPreValidation() {
 		while (incomingInvalidQueue.peek() != null) {
-			processIncoming(incomingInvalidQueue.remove());
+			processIncoming(incomingInvalidQueue.poll());
 		}
 	}
 

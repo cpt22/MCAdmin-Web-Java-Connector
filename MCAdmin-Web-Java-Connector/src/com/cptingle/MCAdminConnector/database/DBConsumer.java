@@ -33,7 +33,7 @@ public class DBConsumer implements Runnable {
 
 	void consume(Query q) {
 		
-		if (!Host.getManager().isValidServer(q.getCaller())) {
+		/*if (!Host.getManager().isValidServer(q.getCaller())) {
 			try {
 				PreparedStatement preparedStmt = conn.prepareStatement("INSERT INTO server_DB_queue (server_ID, stored_object) VALUES (?,?)");
 				preparedStmt.setString(1, q.getCaller().getID());
@@ -42,7 +42,7 @@ public class DBConsumer implements Runnable {
 				e.printStackTrace();
 			}
 			return;
-		}
+		}*/
 		
 		try {
 			PreparedStatement preparedStmt = conn.prepareStatement(q.getQuery());

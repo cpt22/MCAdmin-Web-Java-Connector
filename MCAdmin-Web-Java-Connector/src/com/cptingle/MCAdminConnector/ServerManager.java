@@ -43,5 +43,11 @@ public class ServerManager {
 		
 		return false;
 	}
+	
+	public void shutDown() {
+		for (Map.Entry<String, MCServer> entry : serverMap.entrySet()) {
+            entry.getValue().close();
+		}
+	}
 
 }

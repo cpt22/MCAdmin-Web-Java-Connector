@@ -16,37 +16,48 @@ public class Host {
 	 * Instance Variables
 	 */
 	private static ServerSocket ss;
-	private static Server serv;
+	private static Server server;
 	private static ServerManager sm;
 	private static Connect connection;
 	private static DBConsumer dbconsumer;
 	private static BlockingQueue<Query> dbQueue = new LinkedBlockingQueue<Query>();
 
+	private static boolean isRunning;
 	/**
 	 * Void Main
 	 */
 	public static void main(String[] args) throws Exception {
-
-		System.out.println("Waiting for clients...");
+		isRunning = true;
+		
+		server = new Server();
+		server.start();
 		ss = new ServerSocket(PORT);
 
-		serv = new Server();
-		serv.start();
+		
 
 		sm = new ServerManager();
 		connection = new Connect();
 		
 		dbconsumer = new DBConsumer(dbQueue, connection);
-		new Thread(dbconsumer).start();
+		Thread dbThread = new Thread(dbconsumer);
+		dbThread.start();
+		dbThread.setName("Database thread");
+		
 
-		while (true) {
+		server.getLogger().info("Server Starting");
+		server.getLogger().info("Waiting for clients to connect");
+		while (isRunning) {
 			Socket soc = ss.accept();
-			System.out.println("Connection Established with " + soc.getInetAddress());
+			server.getLogger().info("Connection Established with " + soc.getInetAddress());
 
 			MCServer newServer = new MCServer(soc);
 			
 			sm.holdServer(newServer);
 		}
+	}
+	
+	public static Server getServer() {
+		return server;
 	}
 
 	public static ServerManager getManager() {
@@ -55,5 +66,10 @@ public class Host {
 	
 	public static BlockingQueue<Query> getDBQueue() {
 		return dbQueue;
+	}
+	
+	public static void shutDown() {
+		sm.shutDown();
+		isRunning = false;
 	}
 }
