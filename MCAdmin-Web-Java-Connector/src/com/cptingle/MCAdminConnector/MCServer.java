@@ -98,14 +98,24 @@ public class MCServer {
 	 * @return
 	 */
 	public boolean processPlayerUpdate(PlayerUpdate p) {
-		String sql = "INSERT INTO player_status (uuid, username, status, server_ID) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE status=?";
+		createPlayer(p);
+		
+		String sql = "INSERT INTO player_status (uuid, status, server_ID) VALUES (?,?,?) ON DUPLICATE KEY UPDATE status=?";
 		ArrayList<Object> params = new ArrayList<Object>();
 		params.add(p.uuid);
-		params.add(p.username);
 		params.add(p.status);
 		params.add(ID);
 		params.add(p.status);
 
+		return Host.getDBQueue().offer(new Query(this, sql, params, QueryType.PLAYER_STATUS_UPDATE));
+	}
+	
+	public boolean createPlayer(PlayerUpdate p) {
+		String sql = "INSERT INTO players (username, uuid) VALUES (?,?) ON DUPLICATE KEY UPDATE username=?";
+		ArrayList<Object> params = new ArrayList<Object>();
+		params.add(p.username);
+		params.add(p.uuid);
+		params.add(p.username);
 		return Host.getDBQueue().offer(new Query(this, sql, params, QueryType.PLAYER_STATUS_UPDATE));
 	}
 
@@ -118,13 +128,11 @@ public class MCServer {
 		String sql;
 		ArrayList<Object> params = new ArrayList<Object>();
 		if (p.state) {
-			sql = "INSERT INTO player_banlist (uuid, username, executor, reason, server_ID) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE username=?";
+			sql = "INSERT INTO player_banlist (uuid, executor, reason, server_ID) VALUES (?,?,?,?)";
 			params.add(p.uuid);
-			params.add(p.username);
 			params.add(p.executor);
 			params.add(p.reason);
 			params.add(ID);
-			params.add(p.username);
 		} else {
 			sql = "DELETE FROM player_banlist WHERE uuid=? AND server_ID=?";
 			params.add(p.uuid);
@@ -165,6 +173,10 @@ public class MCServer {
 
 	public void close() {
 		rp.notifyClose();
+	}
+	
+	public void send(Object o) {
+		socketHandler.send(o);
 	}
 
 	/**

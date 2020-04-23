@@ -44,6 +44,16 @@ public class ServerManager {
 		return false;
 	}
 	
+	public MCServer getServer(String id) {
+		MCServer s = null;
+		for (Map.Entry<String, MCServer> entry : serverMap.entrySet()) {
+            if (entry.getValue().getID().equals(id)) {
+            	s = entry.getValue();
+            }
+		}
+		return s;
+	}
+	
 	public void shutDown() {
 		for (Map.Entry<String, MCServer> entry : serverMap.entrySet()) {
             entry.getValue().close();

@@ -10,7 +10,7 @@ import com.cptingle.MCAdminConnector.database.DBConsumer;
 import com.cptingle.MCAdminConnector.database.Query;
 
 public class Host {
-	public static final int PORT = 33233;
+	private static final int PORT = 33233;
 
 	/**
 	 * Instance Variables
