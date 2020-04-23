@@ -98,7 +98,5 @@ public class DBConsumer implements Runnable {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-
 	}
-
 }

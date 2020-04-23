@@ -29,22 +29,26 @@ public class Host {
 	public static void main(String[] args) throws Exception {
 		isRunning = true;
 		
+		
 		server = new Server();
 		server.start();
+		
+		sm = new ServerManager();
+		
+		server.getLogger().info("Connecting to database...");
+		connection = new Connect();
+		server.getLogger().info("Successfully connected to database");
+		
+		server.getLogger().info("Accepting Connections");
 		ss = new ServerSocket(PORT);
 
-		
-
-		sm = new ServerManager();
-		connection = new Connect();
-		
 		dbconsumer = new DBConsumer(dbQueue, connection);
 		Thread dbThread = new Thread(dbconsumer);
 		dbThread.start();
 		dbThread.setName("Database thread");
 		
 
-		server.getLogger().info("Server Starting");
+		server.getLogger().info("Server started");
 		server.getLogger().info("Waiting for clients to connect");
 		while (isRunning) {
 			Socket soc = ss.accept();
