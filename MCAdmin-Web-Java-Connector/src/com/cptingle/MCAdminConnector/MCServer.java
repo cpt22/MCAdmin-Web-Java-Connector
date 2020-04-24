@@ -99,6 +99,7 @@ public class MCServer {
 	 */
 	public boolean processPlayerUpdate(PlayerUpdate p) {
 		createPlayer(p);
+		linkPlayerAndServer(p);
 		
 		String sql = "INSERT INTO player_status (uuid, status, server_ID) VALUES (?,?,?) ON DUPLICATE KEY UPDATE status=?";
 		ArrayList<Object> params = new ArrayList<Object>();
@@ -116,6 +117,14 @@ public class MCServer {
 		params.add(p.username);
 		params.add(p.uuid);
 		params.add(p.username);
+		return Host.getDBQueue().offer(new Query(this, sql, params, QueryType.PLAYER_STATUS_UPDATE));
+	}
+	
+	public boolean linkPlayerAndServer(PlayerUpdate p) {
+		String sql = "INSERT INTO player_server (uuid, server_ID) VALUES (?,?) ON DUPLICATE KEY UPDATE uuid=uuid";
+		ArrayList<Object> params = new ArrayList<Object>();
+		params.add(p.uuid);
+		params.add(ID);
 		return Host.getDBQueue().offer(new Query(this, sql, params, QueryType.PLAYER_STATUS_UPDATE));
 	}
 
