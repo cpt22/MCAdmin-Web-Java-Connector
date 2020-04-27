@@ -10,6 +10,7 @@ public class BanCommand implements Command {
 	@Override
 	public boolean executeCommand(String sender, String label, String[] args) {
 		if (args.length < 3) {
+			Host.getServer().getLogger().info("Incorrect number of arguments");
 			return false;
 		}
 
