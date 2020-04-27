@@ -1,17 +1,18 @@
 package com.cptingle.MCAdminConnector;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class ServerManager {
 
-	Map<String, MCServer> serverMap;
+	Set<MCServer> validServers;
 	List<MCServer> serverHolding;
 
 	public ServerManager() {
-		serverMap = new HashMap<String, MCServer>();
+		validServers = new HashSet<MCServer>();
 		serverHolding = new ArrayList<MCServer>();
 	}
 	
@@ -20,43 +21,39 @@ public class ServerManager {
 	}
 	
 	public boolean transferServer(MCServer server) {
-		if (isValidServer(server.getToken())) {
+		if (isValidServer(server)) {
 			return false;
 		} else {
 			serverHolding.remove(server);
-			serverMap.put(server.getToken(), server);
+			validServers.add(server);
 			return true;
 		}
 	}
 	
 	public boolean removeServer(MCServer server) {
-		return serverMap.remove(server.getToken()) != null;
+		return validServers.remove(server);
 	}
 	
 	public boolean isValidServer(MCServer server) {
-		return serverMap.containsValue(server);
+		return validServers.contains(server);
 	}
-
-	public boolean isValidServer(String token) {
-		if (serverMap.containsKey(token))
-			return true;
-		
-		return false;
+	
+	public boolean isValidServer(String serverID) {
+		return validServers.contains(serverID);
 	}
 	
 	public MCServer getServer(String id) {
-		MCServer s = null;
-		for (Map.Entry<String, MCServer> entry : serverMap.entrySet()) {
-            if (entry.getValue().getID().equals(id)) {
-            	s = entry.getValue();
-            }
+		for (MCServer server : validServers) {
+			if (server.getID().equals(id)) {
+				return server;
+			}
 		}
-		return s;
+		return null;
 	}
 	
 	public void shutDown() {
-		for (Map.Entry<String, MCServer> entry : serverMap.entrySet()) {
-            entry.getValue().close();
+		for (MCServer server : validServers) {
+			server.close();
 		}
 	}
 

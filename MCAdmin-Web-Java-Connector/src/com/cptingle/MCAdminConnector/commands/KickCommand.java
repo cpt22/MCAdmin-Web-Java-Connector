@@ -23,8 +23,10 @@ public class KickCommand implements Command {
 		
 		ServerManager sm = Host.getManager();
 		MCServer serv = sm.getServer(serverID);
-		if (serv == null)
+		if (serv == null) {
+			Host.getServer().getLogger().info("Issue with server: " + serverID);
 			return false;
+		}
 		
 		KickRequest kr = new KickRequest(username, uuid, message, sender);
 		serv.processPlayerKick(kr);

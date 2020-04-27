@@ -82,7 +82,6 @@ public class MCServerSocketHandler extends Thread {
 	public boolean send(Object o) {
 		try {
 			writeObj(o);
-			System.out.println("sent: " + o.toString());
 			return true;
 		} catch (IOException e) {
 			e.printStackTrace();

@@ -100,7 +100,7 @@ public class MCServer {
 	public boolean processPlayerUpdate(PlayerUpdate p) {
 		createPlayer(p);
 		linkPlayerAndServer(p);
-		
+
 		String sql = "INSERT INTO player_status (uuid, status, server_ID) VALUES (?,?,?) ON DUPLICATE KEY UPDATE status=?";
 		ArrayList<Object> params = new ArrayList<Object>();
 		params.add(p.uuid);
@@ -110,7 +110,7 @@ public class MCServer {
 
 		return Host.getDBQueue().offer(new Query(this, sql, params, QueryType.PLAYER_STATUS_UPDATE));
 	}
-	
+
 	public boolean createPlayer(PlayerUpdate p) {
 		String sql = "INSERT INTO players (username, uuid) VALUES (?,?) ON DUPLICATE KEY UPDATE username=?";
 		ArrayList<Object> params = new ArrayList<Object>();
@@ -119,7 +119,7 @@ public class MCServer {
 		params.add(p.username);
 		return Host.getDBQueue().offer(new Query(this, sql, params, QueryType.PLAYER_STATUS_UPDATE));
 	}
-	
+
 	public boolean linkPlayerAndServer(PlayerUpdate p) {
 		String sql = "INSERT INTO player_server (uuid, server_ID) VALUES (?,?) ON DUPLICATE KEY UPDATE uuid=uuid";
 		ArrayList<Object> params = new ArrayList<Object>();
@@ -183,9 +183,18 @@ public class MCServer {
 	public void close() {
 		rp.notifyClose();
 	}
-	
+
 	public void send(Object o) {
 		socketHandler.send(o);
+	}
+
+	public boolean equals(Object o) {
+		if (o instanceof MCServer) {
+			return o == this;
+		} else if (o instanceof String) {
+			return this.getID().equals((String) o);
+		}
+		return false;
 	}
 
 	/**
@@ -251,4 +260,5 @@ public class MCServer {
 			shouldRun = false;
 		}
 	}
+
 }
