@@ -114,9 +114,9 @@ public class MCServer {
 			Map<Object, Object> pms = new HashMap<>();
 			pms.put("uuid", p.uuid);
 			pms.put("serverID", this.ID);
+			pms.put("status", p.status ? "1" : "0");
 			WebInterface.sendPost("http://192.168.0.44:8008/sendEvent", pms);
 		} catch (Exception e) {
-
 			e.printStackTrace();
 		}
 

@@ -23,7 +23,7 @@ public class Connect implements Closeable {
 		Timer timer = new Timer();
 
 		// Schedule to run after every 3 second(3000 millisecond)
-		timer.schedule(new KeepDBAlive(conn), 60000, 600000);
+		timer.schedule(new KeepDBAlive(conn), 600000, 900000);
 	}
 
 	public Connection getConnection() {
@@ -81,7 +81,7 @@ public class Connect implements Closeable {
 			try {
 				Statement st = conn.createStatement();
 				st.executeQuery("SELECT * FROM servers");
-				Host.getServer().getLogger().info("DB Ping Sent");
+				//Host.getServer().getLogger().info("DB Ping Sent");
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
