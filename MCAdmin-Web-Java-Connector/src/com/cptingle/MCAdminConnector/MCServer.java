@@ -2,6 +2,7 @@ package com.cptingle.MCAdminConnector;
 
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -11,6 +12,7 @@ import com.cptingle.MCAdminConnector.database.Query;
 import com.cptingle.MCAdminConnector.database.QueryResult;
 import com.cptingle.MCAdminConnector.database.QueryType;
 import com.cptingle.MCAdminConnector.network.MCServerSocketHandler;
+import com.cptingle.MCAdminConnector.web.WebInterface;
 import com.cptingle.MCAdminItems.BanRequest;
 import com.cptingle.MCAdminItems.KickRequest;
 import com.cptingle.MCAdminItems.PlayerUpdate;
@@ -107,6 +109,16 @@ public class MCServer {
 		params.add(p.status);
 		params.add(ID);
 		params.add(p.status);
+
+		try {
+			Map<Object, Object> pms = new HashMap<>();
+			pms.put("uuid", p.uuid);
+			pms.put("serverID", this.ID);
+			WebInterface.sendPost("http://192.168.0.44:8008/sendEvent", pms);
+		} catch (Exception e) {
+
+			e.printStackTrace();
+		}
 
 		return Host.getDBQueue().offer(new Query(this, sql, params, QueryType.PLAYER_STATUS_UPDATE));
 	}
