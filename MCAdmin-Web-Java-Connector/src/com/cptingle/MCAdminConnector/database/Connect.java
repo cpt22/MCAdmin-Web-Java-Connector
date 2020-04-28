@@ -81,7 +81,7 @@ public class Connect implements Closeable {
 			try {
 				Statement st = conn.createStatement();
 				st.executeQuery("SELECT * FROM servers");
-				//Host.getServer().getLogger().info("DB Ping Sent");
+				Host.getServer().getLogger().info("DB Ping Sent");
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
